@@ -32,6 +32,9 @@ MapUpdateModule::MapUpdateModule(
   loaded_pcd_pub_ = node->create_publisher<sensor_msgs::msg::PointCloud2>(
     "debug/loaded_pointcloud_map", rclcpp::QoS{1}.transient_local());
 
+  loaded_raw_pcd_pub_ = node->create_publisher<sensor_msgs::msg::PointCloud2>(
+    "debug/loaded_pointcloud_map_raw", rclcpp::QoS{1}.transient_local());
+
   pcd_loader_client_ =
     node->create_client<autoware_map_msgs::srv::GetDifferentialPointCloudMap>("pcd_loader_service");
 
@@ -292,11 +295,15 @@ bool MapUpdateModule::update_ndt(
 
     pcl::fromROSMsg(map.pointcloud, *cloud);
     ndt.addTarget(cloud, map.cell_id);
+
+    loaded_maps_all_[map.cell_id] = cloud;
   }
 
   // Remove pcd
   for (const std::string & map_id_to_remove : map_ids_to_remove) {
     ndt.removeTarget(map_id_to_remove);
+
+    loaded_maps_all_.erase(map_id_to_remove);
   }
 
   ndt.createVoxelKdtree();
@@ -319,6 +326,16 @@ void MapUpdateModule::publish_partial_pcd_map()
   map_msg.header.frame_id = "map";
 
   loaded_pcd_pub_->publish(map_msg);
+
+
+  sensor_msgs::msg::PointCloud2 raw_map_msg;
+  pcl::PointCloud<PointTarget> raw_map_pcl;
+  for (const auto & pair : loaded_maps_all_) {
+    raw_map_pcl += *(pair.second);
+  }
+  pcl::toROSMsg(raw_map_pcl, raw_map_msg);
+  raw_map_msg.header.frame_id = "map";
+  loaded_raw_pcd_pub_->publish(raw_map_msg);
 }
 
 }  // namespace autoware::ndt_scan_matcher

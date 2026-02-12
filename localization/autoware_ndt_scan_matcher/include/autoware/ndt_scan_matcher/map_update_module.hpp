@@ -77,6 +77,9 @@ private:
     const geometry_msgs::msg::Point & position, NdtType & ndt,
     std::unique_ptr<DiagnosticsInterface> & diagnostics_ptr);
   void publish_partial_pcd_map();
+  
+  std::map<std::string, pcl::PointCloud<PointTarget>::Ptr> loaded_maps_all_;
+  rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr loaded_raw_pcd_pub_;
 
   rclcpp::Publisher<sensor_msgs::msg::PointCloud2>::SharedPtr loaded_pcd_pub_;
 
